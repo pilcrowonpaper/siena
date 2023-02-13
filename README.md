@@ -2,7 +2,7 @@
 
 A Rehype plugin for Astro that makes working with images inside markdown easier.
 
-- **Relative image paths**: Now you can view all your images in text editors and on Github
+- **Relative image paths**: Now you can view all your images inside markdown in text editors and on Github
 - **Image optimization**: Converts all images to newer formats (`avif`, `webp`)
 
 ### How it works
