@@ -13,6 +13,7 @@ import { imageSize } from "image-size";
 import sharp from "sharp";
 
 let outputDir = "public";
+let imgLoading = "lazy";
 
 type AstroVFile = Omit<VFile, "data"> & {
 	data: {
@@ -143,6 +144,7 @@ const readContent = async (content: Root | RootContent, file: AstroVFile) => {
 
 export type PluginOptions = {
 	outputDir?: string;
+	loading?: "lazy" | "eager";
 };
 
 const plugin = async (root: Root, file: AstroVFile) => {
@@ -159,5 +161,6 @@ const plugin = async (root: Root, file: AstroVFile) => {
 
 export default (options: PluginOptions) => {
 	outputDir = options.outputDir ?? outputDir;
+	imgLoading = options.loading ?? "lazy";
 	return plugin;
 };
