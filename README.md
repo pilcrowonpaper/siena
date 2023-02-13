@@ -1,41 +1,10 @@
-# Template for creating TypeScript packages
+# Siena
 
-Includes:
+A Rehype plugin for Astro that makes working with images inside markdown easier.
 
-- TypeScript (duh)
-- PNPM
-- Prettier
-- Basic NPM publish Github workflow
+- **Relative image paths**: Now you can view all your images in text editors and on Github
+- **Image optimization**: Converts all images to newer formats, and replace all `<img/>` elements with `<picture/>` elements
 
-## Getting started
+### Options
 
-1. Update package.json, specifically: `name`, `description`, `repository.url`, `author`
-2. Check the license - uses MIT as default
-3. Install dependencies using `pnpm install`
-4. Add NPM token as `NPM_TOKEN` Github environment variable 
-
-## Commands
-
-### Build
-
-Builds and creates a `dist` directory.
-
-```
-pnpm build
-```
-
-### Test
-
-Executes `test/index.ts`.
-
-```
-pnpm test
-```
-
-### Release
-
-Releases package to NPM.
-
-```
-pnpm release
-```
+- `outputDir` (`string`): Where Siena will generate a `.siena` directory
