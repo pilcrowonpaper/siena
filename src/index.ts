@@ -77,7 +77,7 @@ const handleImageElement = async (
 	const getImageData = async (src: string) => {
 		const remoteImgUrl = safeUrlParse(src);
 		if (!remoteImgUrl) {
-			const imagePath = path.resolve(
+			const imagePath = path.join(
 				imgSrc.startsWith(".") ? path.dirname(markdownLocation) : cwd,
 				imgSrc
 			);
@@ -94,7 +94,7 @@ const handleImageElement = async (
 	element.properties = {};
 	const imageHash = generateFileHash(imageData.toString());
 	if (!generatedImages.has(imageHash)) {
-		const sienaDirPath = path.resolve(cwd, path.join(`public`, ".siena"));
+		const sienaDirPath = path.join(cwd, `public`, ".siena");
 		if (!fs.existsSync(sienaDirPath)) {
 			fs.mkdirSync(sienaDirPath, {
 				recursive: true
@@ -104,7 +104,7 @@ const handleImageElement = async (
 		const sharpImage = sharp(imageData);
 		const generateImage = async (format: "avif" | "webp" | "jpg") => {
 			const imageFileName = `${imageHash}.${format}`;
-			const outputPath = path.resolve(sienaDirPath, imageFileName);
+			const outputPath = path.join(sienaDirPath, imageFileName);
 			const outputImage = await sharpImage
 				.resize(imageWidth)
 				.toFile(outputPath);
@@ -152,7 +152,7 @@ export type PluginOptions = {
 
 const plugin = async (root: Root, file: VFile) => {
 	if (isInitialCall) {
-		const sienaDirPath = path.resolve(file.cwd, path.join("public", ".siena"));
+		const sienaDirPath = path.join(file.cwd, "public", ".siena");
 		fs.rmSync(sienaDirPath, {
 			recursive: true,
 			force: true
@@ -163,8 +163,8 @@ const plugin = async (root: Root, file: VFile) => {
 	await readContent(root, astroFile);
 };
 
-export default (options: PluginOptions) => {
-	outputDir = options.outputDir ?? outputDir;
-	imgLoading = options.loading ?? "lazy";
+export default (options?: PluginOptions) => {
+	outputDir = options?.outputDir ?? outputDir;
+	imgLoading = options?.loading ?? "lazy";
 	return plugin;
 };
