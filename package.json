@@ -1,6 +1,6 @@
 {
 	"name": "siena",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Optimize markdown images in Astro",
 	"main": "index.js",
 	"types": "index.d.ts",

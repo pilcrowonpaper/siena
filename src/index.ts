@@ -77,7 +77,10 @@ const handleImageElement = async (
 	const getImageData = async (src: string) => {
 		const remoteImgUrl = safeUrlParse(src);
 		if (!remoteImgUrl) {
-			const imagePath = path.resolve(path.dirname(markdownLocation), imgSrc);
+			const imagePath = path.resolve(
+				imgSrc.startsWith(".") ? path.dirname(markdownLocation) : cwd,
+				imgSrc
+			);
 			return fs.readFileSync(imagePath);
 		}
 		const response = await fetch(src);
@@ -112,7 +115,7 @@ const handleImageElement = async (
 						src: path.join("/.siena", `${imageHash}.jpg`),
 						width: outputImage.width,
 						height: outputImage.height,
-						loading: "lazy",
+						loading: imgLoading,
 						alt: imgAlt
 					}
 				});
@@ -147,7 +150,7 @@ export type PluginOptions = {
 	loading?: "lazy" | "eager";
 };
 
-const plugin = async (root: Root, file: AstroVFile) => {
+const plugin = async (root: Root, file: VFile) => {
 	if (isInitialCall) {
 		const sienaDirPath = path.resolve(file.cwd, path.join("public", ".siena"));
 		fs.rmSync(sienaDirPath, {
@@ -156,7 +159,8 @@ const plugin = async (root: Root, file: AstroVFile) => {
 		});
 		isInitialCall = false;
 	}
-	await readContent(root, file);
+	const astroFile = file as AstroVFile;
+	await readContent(root, astroFile);
 };
 
 export default (options: PluginOptions) => {
