@@ -9,7 +9,7 @@ import type { VFile } from "vfile";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { imageSize } from "image-size";
+import { imageSize as calculateImageSize } from "image-size";
 import sharp from "sharp";
 
 let outputDir = "public";
@@ -38,9 +38,13 @@ const safeUrlParse = (maybeUrl: string) => {
 	}
 };
 
-let isInitialCall = true;
-
-const generatedImages = new Set<string>();
+type ImageFormat = "avif" | "webp" | "jpg";
+const additionalImageFormats = [
+	"webp",
+	"avif"
+] as const satisfies readonly ImageFormat[];
+const storedGeneratedImageHashes = new Set<string>();
+const mdImageHashes = new Set<string>();
 
 class HastElement implements HastElementObject {
 	public readonly type = "element";
@@ -74,7 +78,7 @@ const handleImageElement = async (
 	const imgSrc = element.properties.src?.toString() ?? null;
 	const imgAlt = element.properties.alt?.toString() ?? null;
 	if (!imgSrc) return;
-	const getImageData = async (src: string) => {
+	const getBaseImageData = async (src: string) => {
 		const remoteImgUrl = safeUrlParse(src);
 		if (!remoteImgUrl) {
 			const imagePath = path.join(
@@ -87,52 +91,80 @@ const handleImageElement = async (
 		const data = await response.arrayBuffer();
 		return Buffer.from(data);
 	};
-	const imageData = await getImageData(imgSrc);
-	const { width: baseImageWidth } = imageSize(imageData);
-	if (!baseImageWidth) return;
+	const imageData = await getBaseImageData(imgSrc);
+	const baseImage = calculateImageSize(imageData);
+	if (!baseImage.width) return;
 	element.tagName = "picture";
 	element.properties = {};
 	const imageHash = generateFileHash(imageData.toString());
-	if (!generatedImages.has(imageHash)) {
-		const sienaDirPath = path.join(cwd, `public`, ".siena");
-		if (!fs.existsSync(sienaDirPath)) {
-			fs.mkdirSync(sienaDirPath, {
-				recursive: true
-			});
-		}
-		const imageWidth = baseImageWidth > 1920 ? 1920 : baseImageWidth;
-		const sharpImage = sharp(imageData);
-		const generateImage = async (format: "avif" | "webp" | "jpg") => {
+	mdImageHashes.add(imageHash);
+	if (!storedGeneratedImageHashes.has(imageHash)) {
+	}
+	const sienaDirPath = path.join(cwd, `public`, ".siena");
+	const imageWidth = baseImage.width > 1920 ? 1920 : baseImage.width;
+	const sharpImage = sharp(imageData);
+	type ImageMetaData = {
+		width: number;
+		height: number;
+		fileName: string;
+	};
+	const getGeneratedImageMetaData = async (
+		format: ImageFormat
+	): Promise<ImageMetaData> => {
+		const getExistingImageMetaData = (): ImageMetaData | null => {
+			if (!storedGeneratedImageHashes.has(imageHash)) return null;
+			// image-size doesn't support avif
+			// all formats have the same size so use jpg version
+			const imageFileName = [imageHash, "jpg"].join(".");
+			const imageFile = fs.readFileSync(path.join(sienaDirPath, imageFileName));
+			const imageSize = calculateImageSize(imageFile);
+			if (!imageSize.width || !imageSize.height) return null;
+			return {
+				fileName: imageFileName,
+				width: imageSize.width,
+				height: imageSize.height
+			};
+		};
+		const generateImage = async (): Promise<ImageMetaData> => {
 			const imageFileName = `${imageHash}.${format}`;
 			const outputPath = path.join(sienaDirPath, imageFileName);
 			const outputImage = await sharpImage
 				.resize(imageWidth)
 				.toFile(outputPath);
-			if (format === "jpg") {
-				const imageElement = new HastElement("img", {
-					properties: {
-						__siena: true,
-						src: path.join("/.siena", `${imageHash}.jpg`),
-						width: outputImage.width,
-						height: outputImage.height,
-						loading: imgLoading,
-						alt: imgAlt
-					}
-				});
-				element.children.push(imageElement);
-				return;
-			}
-			const sourceElement = new HastElement("source", {
-				properties: {
-					srcset: path.join("/.siena", imageFileName)
-				}
-			});
-			element.children.push(sourceElement);
+			return {
+				fileName: imageFileName,
+				width: outputImage.width,
+				height: outputImage.height
+			};
 		};
-		await generateImage("avif");
-		await generateImage("webp");
-		await generateImage("jpg");
+		const existingImageMetaData = getExistingImageMetaData();
+		if (existingImageMetaData) return existingImageMetaData;
+		return await generateImage();
+	};
+	const generatedJpgImageMetadata = await getGeneratedImageMetaData("jpg");
+	const imageElement = new HastElement("img", {
+		properties: {
+			__siena: true,
+			src: path.join("/.siena", generatedJpgImageMetadata.fileName),
+			width: generatedJpgImageMetadata.width,
+			height: generatedJpgImageMetadata.height,
+			loading: imgLoading,
+			alt: imgAlt
+		}
+	});
+	element.children.push(imageElement);
+	for (const additionalImageFormat of additionalImageFormats) {
+		const generatedImageMetaData = await getGeneratedImageMetaData(
+			additionalImageFormat
+		);
+		const sourceElement = new HastElement("source", {
+			properties: {
+				srcset: path.join("/.siena", generatedImageMetaData.fileName)
+			}
+		});
+		element.children.push(sourceElement);
 	}
+	storedGeneratedImageHashes.add(imageHash);
 };
 
 const readContent = async (content: Root | RootContent, file: AstroVFile) => {
@@ -151,16 +183,31 @@ export type PluginOptions = {
 };
 
 const plugin = async (root: Root, file: VFile) => {
-	if (isInitialCall) {
-		const sienaDirPath = path.join(file.cwd, "public", ".siena");
-		fs.rmSync(sienaDirPath, {
-			recursive: true,
-			force: true
+	const sienaDirPath = path.join(file.cwd, "public", ".siena");
+	if (!fs.existsSync(sienaDirPath)) {
+		fs.mkdirSync(sienaDirPath, {
+			recursive: true
 		});
-		isInitialCall = false;
+	}
+	const preExistingGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
+	storedGeneratedImageHashes.clear();
+	for (const imageFileName of preExistingGeneratedImageFileNames) {
+		const imageHash = imageFileName.split(".")[0];
+		storedGeneratedImageHashes.add(imageHash);
 	}
 	const astroFile = file as AstroVFile;
 	await readContent(root, astroFile);
+	const postGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
+	for (const imageHash of storedGeneratedImageHashes) {
+		if (mdImageHashes.has(imageHash)) continue;
+		const targetImageFileNames = postGeneratedImageFileNames.filter(
+			(fileName) => fileName.startsWith(`${imageHash}.`)
+		);
+		for (const targetImageFileName of targetImageFileNames) {
+			const targetFilePath = path.join(sienaDirPath, targetImageFileName);
+			fs.rmSync(targetFilePath);
+		}
+	}
 };
 
 export default (options?: PluginOptions) => {

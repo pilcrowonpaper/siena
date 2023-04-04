@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.1.4
+
+- Improve performance
+
 ### 0.1.3
 
 - Fix issues with absolute paths
