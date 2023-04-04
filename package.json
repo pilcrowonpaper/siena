@@ -1,6 +1,6 @@
 {
 	"name": "siena",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Optimize markdown images in Astro",
 	"main": "index.js",
 	"types": "index.d.ts",
@@ -29,7 +29,6 @@
 		"*": {}
 	},
 	"dependencies": {
-		"astro": "^2.1.9",
 		"image-size": "^1.0.2",
 		"sharp": "^0.31.3"
 	},

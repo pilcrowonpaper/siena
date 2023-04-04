@@ -5,7 +5,6 @@ import type {
 	ElementContent as HastElementContent
 } from "hast";
 import type { VFile } from "vfile";
-import type { AstroIntegration } from "astro";
 
 import path from "path";
 import fs from "fs";
@@ -195,6 +194,24 @@ const plugin = async (root: Root, file: VFile) => {
 export type PluginOptions = {
 	outputDir?: string;
 	loading?: "lazy" | "eager";
+};
+
+type AstroConfig = {
+	markdown: {
+		rehypePlugins: any[];
+	};
+};
+type ViteDevServer = {
+	config: {
+		root: string;
+	};
+};
+type AstroIntegration = {
+	name: string;
+	hooks: {
+		"astro:config:setup": (options: { config: AstroConfig }) => void;
+		"astro:server:setup": (options: { server: ViteDevServer }) => void;
+	};
 };
 
 export default (options?: PluginOptions): AstroIntegration => {
