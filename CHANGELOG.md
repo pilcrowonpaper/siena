@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.1
+
+- Fix README
+
 ### 0.2.0
 
 - [Breaking] Release as Astro integration

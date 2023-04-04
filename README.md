@@ -15,7 +15,7 @@ pnpm add -D siena
 yarn add -D siena
 ```
 
-2. Add Siena as a Astro integration in Astro config (`astro.config.cjs`):
+2. Add Siena as an Astro integration in Astro config (`astro.config.cjs`):
 
 ```ts
 import siena from "siena";
