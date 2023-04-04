@@ -190,7 +190,7 @@ type AstroConfig = {
 };
 type ViteDevServer = {
 	config: {
-		envDir: string;
+		root: string;
 	};
 };
 type AstroIntegration = {
@@ -212,7 +212,7 @@ export default (options?: PluginOptions): AstroIntegration => {
 				config.markdown.rehypePlugins.push(initializePlugin);
 			},
 			"astro:server:setup": ({ server }) => {
-				sienaDirPath = path.join(server.config.envDir, "public", ".siena");
+				sienaDirPath = path.join(server.config.root, "public", ".siena");
 				if (!fs.existsSync(sienaDirPath)) {
 					fs.mkdirSync(sienaDirPath, {
 						recursive: true

@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.5
+
+- Fix types
+
 ### 0.2.4
 
 - Fix root
