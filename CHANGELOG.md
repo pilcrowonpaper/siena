@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.3
+
+- Remove clean up code
+
 ### 0.2.2
 
 - Update types

@@ -45,7 +45,6 @@ const additionalImageFormats = [
 ] as const satisfies readonly ImageFormat[];
 let sienaDirPath: string;
 const storedGeneratedImageHashes = new Set<string>();
-const mdImageHashes = new Set<string>();
 
 class HastElement implements HastElementObject {
 	public readonly type = "element";
@@ -98,7 +97,6 @@ const handleImageElement = async (
 	element.tagName = "picture";
 	element.properties = {};
 	const imageHash = generateFileHash(imageData.toString());
-	mdImageHashes.add(imageHash);
 	const imageWidth = baseImage.width > 1920 ? 1920 : baseImage.width;
 	const sharpImage = sharp(imageData);
 	type ImageMetaData = {
@@ -178,17 +176,6 @@ const parseContent = async (content: Root | RootContent, file: AstroVFile) => {
 const plugin = async (root: Root, file: VFile) => {
 	const astroFile = file as AstroVFile;
 	await parseContent(root, astroFile);
-	const postGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
-	for (const imageHash of storedGeneratedImageHashes) {
-		if (mdImageHashes.has(imageHash)) continue;
-		const targetImageFileNames = postGeneratedImageFileNames.filter(
-			(fileName) => fileName.startsWith(`${imageHash}.`)
-		);
-		for (const targetImageFileName of targetImageFileNames) {
-			const targetFilePath = path.join(sienaDirPath, targetImageFileName);
-			fs.rmSync(targetFilePath);
-		}
-	}
 };
 
 export type PluginOptions = {
