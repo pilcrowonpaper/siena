@@ -35,6 +35,7 @@
 	},
 	"devDependencies": {
 		"@types/hast": "^2.3.4",
+		"@types/html-escaper": "^3.0.0",
 		"@types/node": "^18.13.0",
 		"@types/sharp": "^0.31.1",
 		"prettier": "^2.8.3",
