@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.4
+
+- Fix root
+
 ### 0.2.3
 
 - Remove clean up code
