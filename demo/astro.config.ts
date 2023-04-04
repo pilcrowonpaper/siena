@@ -3,7 +3,5 @@ import siena from "../src";
 
 // https://astro.build/config
 export default defineConfig({
-	markdown: {
-		rehypePlugins: [siena]
-	}
+	integrations: [siena()]
 });

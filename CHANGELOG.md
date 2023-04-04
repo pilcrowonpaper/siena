@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.0
+
+- [Breaking] Release as Astro integration
+
 ### 0.1.4
 
 - Improve performance

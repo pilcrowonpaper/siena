@@ -5,6 +5,7 @@ import type {
 	ElementContent as HastElementContent
 } from "hast";
 import type { VFile } from "vfile";
+import type { AstroIntegration } from "astro";
 
 import path from "path";
 import fs from "fs";
@@ -30,7 +31,7 @@ const generateFileHash = (data: string) => {
 		.digest("hex");
 };
 
-const safeUrlParse = (maybeUrl: string) => {
+const safeParseUrl = (maybeUrl: string) => {
 	try {
 		return new URL(maybeUrl);
 	} catch {
@@ -43,6 +44,7 @@ const additionalImageFormats = [
 	"webp",
 	"avif"
 ] as const satisfies readonly ImageFormat[];
+let sienaDirPath: string;
 const storedGeneratedImageHashes = new Set<string>();
 const mdImageHashes = new Set<string>();
 
@@ -79,7 +81,7 @@ const handleImageElement = async (
 	const imgAlt = element.properties.alt?.toString() ?? null;
 	if (!imgSrc) return;
 	const getBaseImageData = async (src: string) => {
-		const remoteImgUrl = safeUrlParse(src);
+		const remoteImgUrl = safeParseUrl(src);
 		if (!remoteImgUrl) {
 			const imagePath = path.join(
 				imgSrc.startsWith(".") ? path.dirname(markdownLocation) : cwd,
@@ -98,9 +100,6 @@ const handleImageElement = async (
 	element.properties = {};
 	const imageHash = generateFileHash(imageData.toString());
 	mdImageHashes.add(imageHash);
-	if (!storedGeneratedImageHashes.has(imageHash)) {
-	}
-	const sienaDirPath = path.join(cwd, `public`, ".siena");
 	const imageWidth = baseImage.width > 1920 ? 1920 : baseImage.width;
 	const sharpImage = sharp(imageData);
 	type ImageMetaData = {
@@ -167,36 +166,19 @@ const handleImageElement = async (
 	storedGeneratedImageHashes.add(imageHash);
 };
 
-const readContent = async (content: Root | RootContent, file: AstroVFile) => {
+const parseContent = async (content: Root | RootContent, file: AstroVFile) => {
 	if (content.type !== "element" && content.type !== "root") return;
 	if (content.type === "element") {
 		await handleImageElement(content, file.history[0] ?? null, file.cwd);
 	}
 	await Promise.all(
-		content.children.map((children) => readContent(children, file))
+		content.children.map((children) => parseContent(children, file))
 	);
 };
 
-export type PluginOptions = {
-	outputDir?: string;
-	loading?: "lazy" | "eager";
-};
-
 const plugin = async (root: Root, file: VFile) => {
-	const sienaDirPath = path.join(file.cwd, "public", ".siena");
-	if (!fs.existsSync(sienaDirPath)) {
-		fs.mkdirSync(sienaDirPath, {
-			recursive: true
-		});
-	}
-	const preExistingGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
-	storedGeneratedImageHashes.clear();
-	for (const imageFileName of preExistingGeneratedImageFileNames) {
-		const imageHash = imageFileName.split(".")[0];
-		storedGeneratedImageHashes.add(imageHash);
-	}
 	const astroFile = file as AstroVFile;
-	await readContent(root, astroFile);
+	await parseContent(root, astroFile);
 	const postGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
 	for (const imageHash of storedGeneratedImageHashes) {
 		if (mdImageHashes.has(imageHash)) continue;
@@ -210,8 +192,35 @@ const plugin = async (root: Root, file: VFile) => {
 	}
 };
 
-export default (options?: PluginOptions) => {
+export type PluginOptions = {
+	outputDir?: string;
+	loading?: "lazy" | "eager";
+};
+
+export default (options?: PluginOptions): AstroIntegration => {
 	outputDir = options?.outputDir ?? outputDir;
 	imgLoading = options?.loading ?? "lazy";
-	return plugin;
+	return {
+		name: "siena",
+		hooks: {
+			"astro:config:setup": ({ config }) => {
+				const initializePlugin = () => plugin;
+				config.markdown.rehypePlugins.push(initializePlugin);
+			},
+			"astro:server:setup": ({ server }) => {
+				sienaDirPath = path.join(server.config.root, "public", ".siena");
+				if (!fs.existsSync(sienaDirPath)) {
+					fs.mkdirSync(sienaDirPath, {
+						recursive: true
+					});
+				}
+				const preExistingGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
+				storedGeneratedImageHashes.clear();
+				for (const imageFileName of preExistingGeneratedImageFileNames) {
+					const imageHash = imageFileName.split(".")[0];
+					storedGeneratedImageHashes.add(imageHash);
+				}
+			}
+		}
+	};
 };

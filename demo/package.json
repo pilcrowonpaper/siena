@@ -10,7 +10,9 @@
 		"astro": "astro"
 	},
 	"dependencies": {
-		"astro": "^2.1.9",
 		"image-size": "^1.0.2"
+	},
+	"devDependencies": {
+		"astro": "^2.1.9"
 	}
 }
