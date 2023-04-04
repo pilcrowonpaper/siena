@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.3.0
+
+- [Breaking] Remove debug mode
+- Fix production issue
+
 ### 0.2.7
 
 - Add debug mode

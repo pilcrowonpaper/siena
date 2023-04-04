@@ -14,7 +14,6 @@ import sharp from "sharp";
 
 let outputDir = "public";
 let imgLoading = "lazy";
-let debugMode = false;
 
 type AstroVFile = Omit<VFile, "data"> & {
 	data: {
@@ -97,12 +96,6 @@ const handleImageElement = async (
 	element.tagName = "picture";
 	element.properties = {};
 	const imageHash = generateFileHash(imageData.toString());
-	if (debugMode) {
-		console.log("image");
-		console.log(imageHash);
-		console.log("storedGeneratedImageHashes");
-		console.log(storedGeneratedImageHashes);
-	}
 	const imageWidth = baseImage.width > 1920 ? 1920 : baseImage.width;
 	const sharpImage = sharp(imageData);
 	type ImageMetaData = {
@@ -111,10 +104,6 @@ const handleImageElement = async (
 		fileName: string;
 	};
 	const sienaDirPath = path.join(cwd, "public", ".siena");
-	if (debugMode) {
-		console.log("sienaDirPath");
-		console.log(sienaDirPath);
-	}
 	const getGeneratedImageMetaData = async (
 		format: ImageFormat
 	): Promise<ImageMetaData> => {
@@ -205,18 +194,36 @@ type ViteDevServer = {
 		root: string;
 	};
 };
+type ViteConfig = {
+	root?: string;
+};
 type AstroIntegration = {
 	name: string;
 	hooks: {
-		"astro:config:setup": (options: { config: AstroConfig }) => void;
-		"astro:server:setup": (options: { server: ViteDevServer }) => void;
+		"astro:config:setup"?: (options: { config: AstroConfig }) => void;
+		"astro:server:setup"?: (options: { server: ViteDevServer }) => void;
+		"astro:build:setup"?: (options: { vite: ViteConfig }) => void;
 	};
+};
+
+const setup = (root: string) => {
+	const sienaDirPath = path.join(root, "public", ".siena");
+	if (!fs.existsSync(sienaDirPath)) {
+		fs.mkdirSync(sienaDirPath, {
+			recursive: true
+		});
+	}
+	const preExistingGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
+	storedGeneratedImageHashes.clear();
+	for (const imageFileName of preExistingGeneratedImageFileNames) {
+		const imageHash = imageFileName.split(".")[0];
+		storedGeneratedImageHashes.add(imageHash);
+	}
 };
 
 export default (options?: PluginOptions): AstroIntegration => {
 	outputDir = options?.outputDir ?? outputDir;
 	imgLoading = options?.loading ?? "lazy";
-	debugMode = options?.debug ?? debugMode;
 	return {
 		name: "siena",
 		hooks: {
@@ -225,29 +232,12 @@ export default (options?: PluginOptions): AstroIntegration => {
 				config.markdown.rehypePlugins.push(initializePlugin);
 			},
 			"astro:server:setup": ({ server }) => {
-				const sienaDirPath = path.join(server.config.root, "public", ".siena");
-				if (debugMode) {
-					console.log("siena dir", sienaDirPath);
-				}
-				if (!fs.existsSync(sienaDirPath)) {
-					fs.mkdirSync(sienaDirPath, {
-						recursive: true
-					});
-				}
-				const preExistingGeneratedImageFileNames = fs.readdirSync(sienaDirPath);
-				if (debugMode) {
-					console.log("preExistingGeneratedImageFileNames");
-					console.log(preExistingGeneratedImageFileNames);
-				}
-				storedGeneratedImageHashes.clear();
-				for (const imageFileName of preExistingGeneratedImageFileNames) {
-					const imageHash = imageFileName.split(".")[0];
-					storedGeneratedImageHashes.add(imageHash);
-				}
-				if (debugMode) {
-					console.log("storedGeneratedImageHashes");
-					console.log(storedGeneratedImageHashes);
-				}
+				setup(server.config.root);
+			},
+			"astro:build:setup": ({ vite }) => {
+				const projectRoot = vite.root ?? null;
+				if (!projectRoot) throw new Error("Project root is undefined");
+				setup(projectRoot);
 			}
 		}
 	};
