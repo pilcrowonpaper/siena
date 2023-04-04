@@ -43,7 +43,6 @@ const additionalImageFormats = [
 	"webp",
 	"avif"
 ] as const satisfies readonly ImageFormat[];
-let sienaDirPath: string;
 const storedGeneratedImageHashes = new Set<string>();
 
 class HastElement implements HastElementObject {
@@ -104,6 +103,7 @@ const handleImageElement = async (
 		height: number;
 		fileName: string;
 	};
+	const sienaDirPath = path.join(cwd, "public", ".siena");
 	const getGeneratedImageMetaData = async (
 		format: ImageFormat
 	): Promise<ImageMetaData> => {
@@ -212,7 +212,7 @@ export default (options?: PluginOptions): AstroIntegration => {
 				config.markdown.rehypePlugins.push(initializePlugin);
 			},
 			"astro:server:setup": ({ server }) => {
-				sienaDirPath = path.join(server.config.root, "public", ".siena");
+				const sienaDirPath = path.join(server.config.root, "public", ".siena");
 				if (!fs.existsSync(sienaDirPath)) {
 					fs.mkdirSync(sienaDirPath, {
 						recursive: true

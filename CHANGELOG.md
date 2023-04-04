@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.6
+
+- Fix build issues on Vercel
+
 ### 0.2.5
 
 - Fix types
