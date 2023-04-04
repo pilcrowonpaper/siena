@@ -11,7 +11,7 @@
 	],
 	"scripts": {
 		"build": "shx rm -rf ./dist/* && tsc && shx cp ./package.json ./dist && shx cp ./README.md ./dist",
-		"release": "pnpm build && cd dist && pnpm install --no-frozen-lockfile && pnpm publish --no-git-checks --access public && cd ../",
+		"release": "pnpm build && cd dist && pnpm publish --no-git-checks --access public && cd ../",
 		"test": "pnpm exec ts-node --esm -T test/index.ts"
 	},
 	"keywords": [],
