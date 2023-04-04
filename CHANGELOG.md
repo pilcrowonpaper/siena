@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.2.7
+
+- Add debug mode
+
 ### 0.2.6
 
 - Fix build issues on Vercel
